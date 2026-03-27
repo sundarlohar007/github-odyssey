@@ -20,20 +20,24 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Odyssey CLI
+      - name: Install dependencies
         run: |
-          npm install -g ./odyssey-cli
+          npm install
+
+      - name: Build
+        run: |
+          npm run build
 
       - name: Run Odyssey Sync
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          odyssey sync
+          node dist/index.js sync
         continue-on-error: true
 
       - name: Generate Player Card
         run: |
-          odyssey card -o odyssey-card.svg
+          node dist/index.js card -o odyssey-card.svg
         continue-on-error: true
 
       - name: Upload Artifact

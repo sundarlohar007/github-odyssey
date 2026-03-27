@@ -51,21 +51,24 @@
 ### Installation
 
 ```bash
-# Using npm
-npm install -g github-odyssey
+# Install directly from GitHub (recommended)
+npm install -g https://github.com/sundarlohar007/github-odyssey.git
 
-# Using npx (no install needed!)
-npx github-odyssey --help
+# Or clone and install locally
+git clone https://github.com/sundarlohar007/github-odyssey.git
+cd github-odyssey/odyssey-cli
+npm install
+npm link
 ```
 
 ### Setup
 
 ```bash
-# Initialize with your GitHub token
+# Initialize with your GitHub token (recommended for higher API limits)
 odyssey setup --token YOUR_GITHUB_TOKEN
 ```
 
-Get your token at: https://github.com/settings/tokens
+Get your token at: https://github.com/settings/tokens (select "repo" scope for full features)
 
 ### Basic Commands
 
@@ -161,7 +164,7 @@ odyssey leaderboard
 
 ```bash
 # Clone the repo
-git clone https://github.com/odyssey-dev/github-odyssey
+git clone https://github.com/sundarlohar007/github-odyssey.git
 cd github-odyssey/odyssey-cli
 
 # Install dependencies
@@ -170,8 +173,13 @@ npm install
 # Build
 npm run build
 
+# Link for global testing
+npm link
+
 # Test locally
-node dist/index.js
+odyssey --help
+# or
+node dist/index.js --help
 ```
 
 ---

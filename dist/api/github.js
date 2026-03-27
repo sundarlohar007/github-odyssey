@@ -1,8 +1,12 @@
 import axios from 'axios';
+import chalk from 'chalk';
 export class GitHubClient {
     token = null;
     constructor(token) {
-        this.token = token || process.env.GITHUB_TOKEN || null;
+        // Only use token if it's not empty and not a test token
+        if (token && token.length > 10 && token !== 'test') {
+            this.token = token;
+        }
     }
     getHeaders() {
         const headers = {
@@ -15,10 +19,30 @@ export class GitHubClient {
         return headers;
     }
     async getUser(username) {
-        const response = await axios.get(`https://api.github.com/users/${username}`, {
-            headers: this.getHeaders()
-        });
-        return response.data;
+        try {
+            const response = await axios.get(`https://api.github.com/users/${username}`, {
+                headers: this.getHeaders(),
+                timeout: 10000
+            });
+            return response.data;
+        }
+        catch (error) {
+            if (error.response?.status === 403) {
+                const remaining = error.response.headers['x-ratelimit-remaining'];
+                if (remaining === '0') {
+                    const resetTime = new Date(error.response.headers['x-ratelimit-reset'] * 1000);
+                    throw new Error(`GitHub API rate limit exceeded. Resets at ${resetTime.toLocaleTimeString()}. Run "odyssey setup" with a GitHub token to increase limits.`);
+                }
+                throw new Error('GitHub API rate limit exceeded. Please try again later or use a GitHub token.');
+            }
+            if (error.response?.status === 401) {
+                throw new Error('Invalid GitHub token. Run "odyssey setup" to configure a new token.');
+            }
+            if (error.code === 'ECONNABORTED') {
+                throw new Error('Request timed out. Please check your internet connection.');
+            }
+            throw error;
+        }
     }
     async getAuthenticatedUser() {
         const response = await axios.get('https://api.github.com/user', {
@@ -45,16 +69,27 @@ export class GitHubClient {
         }
       }
     `;
-        const response = await axios.post('https://api.github.com/graphql', {
-            query,
-            variables: { username }
-        }, {
-            headers: {
-                ...this.getHeaders(),
-                'Content-Type': 'application/json'
+        try {
+            const response = await axios.post('https://api.github.com/graphql', {
+                query,
+                variables: { username }
+            }, {
+                headers: {
+                    ...this.getHeaders(),
+                    'Content-Type': 'application/json'
+                },
+                timeout: 15000
+            });
+            if (response.data.errors) {
+                console.log(chalk.yellow('Warning: GraphQL errors, using fallback data'));
+                return { totalContributions: 0, weeks: [] };
             }
-        });
-        return response.data.data?.user?.contributionsCollection?.contributionCalendar;
+            return response.data.data?.user?.contributionsCollection?.contributionCalendar;
+        }
+        catch (error) {
+            console.log(chalk.yellow('Warning: Could not fetch contributions, using estimate'));
+            return { totalContributions: 0, weeks: [] };
+        }
     }
     async getUserLanguages(username) {
         const query = `
@@ -76,33 +111,40 @@ export class GitHubClient {
         }
       }
     `;
-        const response = await axios.post('https://api.github.com/graphql', {
-            query,
-            variables: { username }
-        }, {
-            headers: {
-                ...this.getHeaders(),
-                'Content-Type': 'application/json'
-            }
-        });
-        const repos = response.data.data?.user?.repositories?.nodes || [];
-        const languageSizes = new Map();
-        for (const repo of repos) {
-            const langs = repo?.languages?.edges || [];
-            for (const lang of langs) {
-                const existing = languageSizes.get(lang.node.name);
-                if (existing) {
-                    existing.size += lang.size;
+        try {
+            const response = await axios.post('https://api.github.com/graphql', {
+                query,
+                variables: { username }
+            }, {
+                headers: {
+                    ...this.getHeaders(),
+                    'Content-Type': 'application/json'
+                },
+                timeout: 15000
+            });
+            const repos = response.data.data?.user?.repositories?.nodes || [];
+            const languageSizes = new Map();
+            for (const repo of repos) {
+                const langs = repo?.languages?.edges || [];
+                for (const lang of langs) {
+                    const existing = languageSizes.get(lang.node.name);
+                    if (existing) {
+                        existing.size += lang.size;
+                    }
+                    else {
+                        languageSizes.set(lang.node.name, { size: lang.size, color: lang.node.color });
+                    }
                 }
-                else {
-                    languageSizes.set(lang.node.name, { size: lang.size, color: lang.node.color });
-                }
             }
+            return Array.from(languageSizes.entries())
+                .map(([name, { size, color }]) => ({ name, color, size }))
+                .sort((a, b) => b.size - a.size)
+                .slice(0, 10);
         }
-        return Array.from(languageSizes.entries())
-            .map(([name, { size, color }]) => ({ name, color, size }))
-            .sort((a, b) => b.size - a.size)
-            .slice(0, 10);
+        catch (error) {
+            console.log(chalk.yellow('Warning: Could not fetch languages'));
+            return [];
+        }
     }
     async getUserData(username) {
         const [user, calendar, languages] = await Promise.all([

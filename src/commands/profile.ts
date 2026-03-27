@@ -11,11 +11,15 @@ export async function profileCommand(username?: string) {
   let targetUsername = username;
 
   if (!targetUsername) {
+    if (!token) {
+      console.log(chalk.red('Error: Please provide a username or run "odyssey setup" first.'));
+      return;
+    }
     try {
       const user = await client.getAuthenticatedUser();
       targetUsername = user.login;
-    } catch (e) {
-      console.log(chalk.red('Error: Not authenticated. Run `odyssey setup` first.'));
+    } catch (e: any) {
+      console.log(chalk.red(`Error: ${e.message}`));
       return;
     }
   }
