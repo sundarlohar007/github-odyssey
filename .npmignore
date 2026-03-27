@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Source files - we only publish compiled JS
+src/
+*.ts
+tsconfig.json
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+*.test.js
+
+# Misc
+*.log
+.env
