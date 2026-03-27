@@ -1,0 +1,45 @@
+name: GitHub Odyssey - Daily Sync
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Odyssey CLI
+        run: |
+          npm install -g ./odyssey-cli
+
+      - name: Run Odyssey Sync
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          odyssey sync
+        continue-on-error: true
+
+      - name: Generate Player Card
+        run: |
+          odyssey card -o odyssey-card.svg
+        continue-on-error: true
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: odyssey-data
+          path: odyssey-card.svg
+          retention-days: 30
