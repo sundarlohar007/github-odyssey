@@ -1,10 +1,9 @@
 # Dependencies
 node_modules/
 
-# Source files - we only publish compiled JS
-src/
-*.ts
-tsconfig.json
+# Source files - only if not needed
+# src/
+# *.ts
 
 # Git
 .git/
