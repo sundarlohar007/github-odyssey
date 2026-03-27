@@ -7,15 +7,11 @@
   "bin": {
     "odyssey": "./dist/index.js"
   },
-  "files": [
-    "dist",
-    "package.json"
-  ],
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsc && node dist/index.js",
-    "postinstall": "npm run build",
+    "postinstall": "npm run build || true",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
